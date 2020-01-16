@@ -1,18 +1,20 @@
 from PIL import Image
 import random
-
+import sys
 #Constants
 CONST_MAX_SAD = 16384
 CONST_S0_SAD_PENALTY = 44
-CONST_S0_DETAIL_PENALTY = 4
+CONST_S0_DETAIL_PENALTY = 6
 CONST_S1_SAD_PENALTY = 44
-CONST_S1_DETAIL_PENALTY = 4
-CONST_ZMV_SAD_PENALTY = 48
+CONST_S1_DETAIL_PENALTY = 6
+CONST_ZMV_SAD_PENALTY = 40
 CONST_ZMV_DETAIL_PENALTY = 0
 CONST_T0_SAD_PENALTY = 56
-CONST_T0_DETAIL_PENALTY = 5
+CONST_T0_DETAIL_PENALTY = 4
 CONST_T1_SAD_PENALTY = 56
-CONST_T1_PENALTY_PENALTY = 5
+CONST_T1_PENALTY_PENALTY = 4
+CONST_T2_SAD_PENALTY = 50
+CONST_T2_PENALTY_PENALTY = 4
 CONST_RAND0_PENALTY = 60
 CONST_RAND1_PENALTY = 114
 
@@ -20,7 +22,7 @@ CONST_SPATIAL_CAND0 = (-1,-1)
 CONST_SPATIAL_CAND1 = (1,-1)
 CONST_TEMPORAL_CAND0 = (-2,2)
 CONST_TEMPORAL_CAND1 = (2,2)
-
+CONST_TEMPORAL_CAND2 = (0,2)
 
 class MotionMap():
     def __init__(self,width,height):
@@ -52,6 +54,7 @@ class MyImage():
         mvFromS1 = mvBuffer.getMotion(x+CONST_SPATIAL_CAND1[0],y+CONST_SPATIAL_CAND1[1]),CONST_S1_SAD_PENALTY,CONST_S1_DETAIL_PENALTY
         mvFromT0 = mvBuffer.getMotion(x+CONST_TEMPORAL_CAND0[0],y+CONST_TEMPORAL_CAND0[1]),CONST_T0_SAD_PENALTY,CONST_T0_DETAIL_PENALTY
         mvFromT1 = mvBuffer.getMotion(x+CONST_TEMPORAL_CAND1[0],y+CONST_TEMPORAL_CAND1[1]),CONST_T1_SAD_PENALTY,CONST_T1_PENALTY_PENALTY
+        mvFromT2 = mvBuffer.getMotion(x+CONST_TEMPORAL_CAND2[0],y+CONST_TEMPORAL_CAND2[1]),CONST_T2_SAD_PENALTY,CONST_T2_PENALTY_PENALTY
         if mvBuffer.getMotion(x+CONST_SPATIAL_CAND0[0],y+CONST_SPATIAL_CAND0[1])!= None:
             mvFromU0 = (mvBuffer.getMotion(x+CONST_SPATIAL_CAND0[0],y+CONST_SPATIAL_CAND0[1])[0]+random.randint(-8,8),
                         mvBuffer.getMotion(x+CONST_SPATIAL_CAND0[0],y+CONST_SPATIAL_CAND0[1])[1]+random.randint(-8,8)),CONST_RAND0_PENALTY,0
@@ -62,7 +65,7 @@ class MyImage():
                         mvBuffer.getMotion(x+CONST_SPATIAL_CAND1[0],y+CONST_SPATIAL_CAND1[1])[1]+random.randint(-8,8)),CONST_RAND1_PENALTY,0
         else:
             mvFromU1 = None
-        mv_cand = [mvFromS0,mvFromS1,mvFromT0,mvFromT1,mvFromU0,mvFromU1,((0,0),CONST_ZMV_SAD_PENALTY,0)]
+        mv_cand = [mvFromS0,mvFromS1,mvFromT0,mvFromT1,mvFromT2,mvFromU0,mvFromU1,((0,0),CONST_ZMV_SAD_PENALTY,0)]
         final_mv = mvBuffer.getMotion(x,y)
         #print mv_cand,
         for cand in mv_cand:
@@ -127,22 +130,22 @@ class MyImage():
         return self.img.load()
     def getImg(self):
         return self.img 
-
-#image_name = "SDHQV/SDHQV"
-image_name = "SDBronze/SDBronze"
-img_cur = None
-width,height = 720,480
-mvBuffer = MotionMap(int(width/4),int(height/4))
-for i in range(2,100):
-    #break;
-    cur_name = image_name+ str(i).zfill(4)+".bmp"
-    print(cur_name)
-    img_prev = img_cur
-    img_cur = MyImage(Image.open(cur_name).convert('YCbCr'),8)
-    if img_prev != None:
-        img_cur.setPrev(img_prev)
-        width, height = img_cur.getImg().size
-        img_cur.writeMotion2Buffer(mvBuffer)
-        img_mv = img_cur.img.convert('RGB')
-        img_mv.save("SDBronze/MV_SDBronze"+str(i).zfill(4)+".bmp")
+if __name__ == '__main__':
+    image_name = sys.argv[1]
+    #image_name = "SDBronze/SDBronze"
+    img_cur = None
+    width,height = int(sys.argv[2]),int(sys.argv[3])
+    mvBuffer = MotionMap(int(width/4),int(height/4))
+    for i in range(int(sys.argv[4]),int(sys.argv[5])):
+        #break;
+        cur_name = image_name+"_"+ str(i).zfill(4)+".png"
+        print(cur_name)
+        img_prev = img_cur
+        img_cur = MyImage(Image.open(cur_name).convert('YCbCr'),8)
+        if img_prev != None:
+            img_cur.setPrev(img_prev)
+            width, height = img_cur.getImg().size
+            img_cur.writeMotion2Buffer(mvBuffer)
+            img_mv = img_cur.img.convert('RGB')
+            img_mv.save(image_name + "_MV_"+str(i).zfill(4)+".png")
 
